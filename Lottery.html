@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幹部抽籤網頁</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+            margin: 0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80%;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .result {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .history {
+            text-align: left;
+            width: 100%;
+            /* border: 1px solid #ccc; */
+            /* padding: 10px; */
+            /* border-radius: 5px; */
+            /* background-color: #f9f9f9; */
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+        }
+
+        .customize {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 左側區域：標題與輸入框 -->
+    <div>
+        <h2>抽籤工具</h2>
+        <p>在下方輸入，每行為一個選項：</p>
+        <textarea id="inputBox" placeholder="輸入抽籤人選，換行分隔..."></textarea>
+    </div>
+
+    <!-- 中間區域：自訂功能及幹部抽取按鈕和結果 -->
+    <div>
+        <div class="customize">
+            <h3>自訂幹部人選</h3>
+            <span>
+                <label>選擇幹部：
+                    <select id="customLeader">
+                        <option value="leader1">班代</option>
+                        <option value="leader2">副班代</option>
+                        <option value="leader3">學藝</option>
+                        <option value="leader4">總務</option>
+                        <option value="leader5">康樂</option>
+                        <option value="leader6">公關</option>
+                        <option value="leader7">體衛</option>
+                        <option value="leader8">輔導</option>
+                    </select>
+                </label>
+                <input type="text" id="customInput" placeholder="輸入人選...">
+                <button onclick="customizeLeader()">更新人選</button>
+            </span>
+        </div>
+
+        <div class="results" id="leader-controls">
+            <button onclick="drawLottery('leader1')">班代</button>
+            <div class="result" id="result-leader1">尚未抽取</div>
+
+            <button onclick="drawLottery('leader2')">副班代</button>
+            <div class="result" id="result-leader2">尚未抽取</div>
+
+            <button onclick="drawLottery('leader3')">學藝</button>
+            <div class="result" id="result-leader3">尚未抽取</div>
+
+            <button onclick="drawLottery('leader4')">總務</button>
+            <div class="result" id="result-leader4">尚未抽取</div>
+
+            <button onclick="drawLottery('leader5')">康樂</button>
+            <div class="result" id="result-leader5">尚未抽取</div>
+
+            <button onclick="drawLottery('leader6')">公關</button>
+            <div class="result" id="result-leader6">尚未抽取</div>
+
+            <button onclick="drawLottery('leader7')">體衛</button>
+            <div class="result" id="result-leader7">尚未抽取</div>
+
+            <button onclick="drawLottery('leader8')">輔導</button>
+            <div class="result" id="result-leader8">尚未抽取</div>
+        </div>
+    </div>
+
+    <!-- 右側區域：歷史記錄 -->
+    <div class="history" id="globalHistory">
+        <h3>抽取歷史記錄</h3>
+        <ul id="historyList-global"></ul>
+    </div>
+    <script>
+        let options = [];
+        const assigned = {};
+
+        function drawLottery(leader) {
+            const inputBox = document.getElementById('inputBox');
+
+            // 初始化選項列表
+            if (options.length === 0) {
+                options = inputBox.value.trim().split('\n').filter(line => line.trim() !== '');
+
+                if (options.length === 0) {
+                    alert('請輸入至少一個選項！');
+                    return;
+                }
+
+                // 清空分配記錄
+                for (let key in assigned) {
+                    assigned[key] = null;
+                }
+                document.getElementById('historyList-global').innerHTML = '';
+            }
+
+            // 如果幹部已有抽選，重新抽取並刪除舊歷史記錄
+            if (assigned[leader]) {
+                const index = options.indexOf(assigned[leader]);
+                if (index !== -1) options.push(assigned[leader]); // 加回選項列表
+
+                // 刪除舊記錄
+                const oldRecord = document.querySelector(`#historyList-global li[data-leader='${leader}']`);
+                if (oldRecord) oldRecord.remove();
+            }
+
+            // 篩選未被抽中的選項
+            const availableOptions = options.filter(option => !Object.values(assigned).includes(option));
+
+            if (availableOptions.length === 0) {
+                alert('所有選項已分配完畢！');
+                return;
+            }
+
+            // 隨機抽取一個選項
+            const randomIndex = Math.floor(Math.random() * availableOptions.length);
+            const selectedOption = availableOptions.splice(randomIndex, 1)[0];
+            assigned[leader] = selectedOption;
+
+            // 顯示抽取結果
+            document.getElementById(`result-${leader}`).textContent = selectedOption;
+
+            // 更新歷史記錄
+            const historyList = document.getElementById('historyList-global');
+            const listItem = document.createElement('li');
+            listItem.textContent = `${document.querySelector(`button[onclick="drawLottery('${leader}')"]`).textContent}：${selectedOption}`;
+            listItem.setAttribute('data-leader', leader);
+            historyList.appendChild(listItem);
+        }
+
+        function customizeLeader() {
+            const leader = document.getElementById('customLeader').value;
+            const newPerson = document.getElementById('customInput').value.trim();
+
+            if (!newPerson) {
+                alert('請輸入人選名稱！');
+                return;
+            }
+
+            // 更新分配記錄
+            if (assigned[leader]) {
+                const index = options.indexOf(assigned[leader]);
+                if (index !== -1) options.push(assigned[leader]); // 加回選項列表
+
+                // 刪除舊記錄
+                const oldRecord = document.querySelector(`#historyList-global li[data-leader='${leader}']`);
+                if (oldRecord) oldRecord.remove();
+            }
+
+            assigned[leader] = newPerson;
+            document.getElementById(`result-${leader}`).textContent = newPerson;
+
+            // 更新歷史記錄
+            const historyList = document.getElementById('historyList-global');
+            const listItem = document.createElement('li');
+            listItem.textContent = `${document.querySelector(`button[onclick="drawLottery('${leader}')"]`).textContent}：${newPerson}`;
+            listItem.setAttribute('data-leader', leader);
+            historyList.appendChild(listItem);
+        }
+    </script>
+</body>
+
+</html>
